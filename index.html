@@ -181,14 +181,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--tx);
       <div class="hint">→ <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></div>
     </div>
 
-    <div class="f">
-      <label>Google AI Studio API Key（Gemini 生圖用）<span id="gdot"></span></label>
-      <div class="row">
-        <div class="f" style="flex:3"><input type="password" id="gk" placeholder="AIza…"></div>
-        <button class="btn btn-pu" onclick="testGemini()" style="align-self:flex-end;margin-bottom:0;">測試生圖</button>
-      </div>
-      <div class="hint">→ <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>（免費，建議用 Gemini 2.0 Flash）</div>
-    </div>
+
 
     <div class="f">
       <label>Facebook Page Access Token <span id="fdot"></span></label>
@@ -247,11 +240,9 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--tx);
           <option value="13">⑬ 互動型貼文</option>
         </select>
       </div>
-      <div class="f"><label>自動生成配圖</label>
-        <select id="genImg"><option value="gemini">Gemini 2.0 生圖 ✨</option><option value="none">不生圖</option></select>
-      </div>
+
     </div>
-    <button class="btn btn-p btn-full" id="genBtn" onclick="generate()">✨ 開始生成文案 + 配圖</button>
+    <button class="btn btn-p btn-full" id="genBtn" onclick="generate()">✨ 開始生成文案</button>
     <div class="prog-w" id="gp">
       <div class="prog-info"><span id="gpl">生成中…</span><span id="gpp">0%</span></div>
       <div class="prog-bg"><div class="prog-fill" id="gpf"></div></div>
@@ -296,7 +287,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--tx);
       <li>前往你的 <strong>Zeabur Dashboard</strong> → 新增 Project → 新增 Python Service</li>
       <li>上傳 <code>main.py</code> 與 <code>requirements.txt</code></li>
       <li>在 Service 的 <strong>Environment Variables</strong> 填入：<br>
-        <code>CLAUDE_API_KEY</code> / <code>GOOGLE_AI_KEY</code> / <code>FB_PAGE_TOKEN</code> / <code>FB_PAGE_ID</code>
+        <code>CLAUDE_API_KEY</code> / <code>FB_PAGE_TOKEN</code> / <code>FB_PAGE_ID</code>
       </li>
       <li>Zeabur 自動部署，每 2 天 13:30 自動發文 ✅</li>
     </ol>
@@ -380,7 +371,7 @@ function pg(id, el){
 // ═══ CONFIG ═══
 function loadCfg(){
   if(cfg.ck)  document.getElementById('ck').value  = cfg.ck;
-  if(cfg.gk)  document.getElementById('gk').value  = cfg.gk;
+
   if(cfg.ft)  document.getElementById('ft').value  = cfg.ft;
   if(cfg.fid) document.getElementById('fid').value = cfg.fid;
   if(cfg.freq) document.getElementById('freq').value = cfg.freq;
@@ -390,7 +381,7 @@ function loadCfg(){
 function save(){
   cfg = {
     ck:    document.getElementById('ck').value.trim(),
-    gk:    document.getElementById('gk').value.trim(),
+    gk:    '',
     ft:    document.getElementById('ft').value.trim(),
     fid:   document.getElementById('fid').value.trim(),
     freq:  document.getElementById('freq').value,
@@ -404,7 +395,6 @@ function updDots(){
     ? '<span class="dot dot-ok"></span>已設定'
     : '<span class="dot dot-warn"></span>未設定';
   document.getElementById('cdot').innerHTML = mk(cfg.ck);
-  document.getElementById('gdot').innerHTML = mk(cfg.gk);
   document.getElementById('fdot').innerHTML = mk(cfg.ft);
 }
 
@@ -575,7 +565,7 @@ async function generate(){
     setP(true,97,'整理文案…');
     queue = [...queue, ...posts];
     saveQ(); renderGenResults(posts); renderStats(); updateBadge();
-    addLog('info',`生成 ${posts.length} 篇文案，${posts.filter(p=>p.imageB64).length} 篇含 Gemini 配圖`);
+    addLog('info',`生成 ${posts.length} 篇文案並加入佇列`);
     toast(`✅ ${posts.length} 篇文案已加入佇列！`);
     setP(true,100,'完成！');
     setTimeout(()=>setP(false),700);
@@ -583,7 +573,7 @@ async function generate(){
     document.getElementById('genRes').innerHTML=`<div class="ib ib-a">❌ ${esc(e.message)}</div>`;
     setP(false);
   }
-  btn.disabled=false; btn.textContent='✨ 繼續生成更多';
+  btn.disabled=false; btn.textContent='✨ 繼續生成更多文案';
 }
 
 function setP(show,pct,label){
@@ -610,12 +600,7 @@ function renderGenResults(posts){
         <div class="pc-title">${esc(p.title)}</div>
         <div class="pc-text">${esc(p.content)}</div>
         <div class="pc-tags">${esc(p.hashtags)}</div>
-        <div class="pc-photo-wrap">
-          <div class="pc-photo"><b>📷 建議配圖：</b>${esc(p.photo)}</div>
-          ${p.imageB64
-            ? `<img class="pc-img" src="${p.imageB64}" alt="Gemini 生成配圖">`
-            : `<div class="pc-img-gen">🎨 <span>${cfg.gk ? 'Gemini 生圖處理中…' : '請設定 Google AI Key 以自動生圖'}</span></div>`}
-        </div>
+        <div class="pc-photo"><b>📷 建議配圖：</b>${esc(p.photo)}</div>
       </div>
     </div>`).join('');
 }
@@ -643,9 +628,7 @@ function renderQ(){
     const si=p.scheduledAt?`<div class="pc-time">🕐 排程：${fmtD(p.scheduledAt)}</div>`:'';
     const pi=p.postedAt?`<div class="pc-time">✅ 發布：${fmtD(p.postedAt)}</div>`:'';
     const lk=p.fbPostId?`<a href="https://www.facebook.com/${p.fbPostId}" target="_blank" class="btn btn-o btn-sm">🔗 FB</a>`:'';
-    const imgHtml = p.imageB64
-      ? `<img class="pc-img" src="${p.imageB64}" alt="配圖">`
-      : '';
+
     let foot='';
     if(p.status!=='posted'){
       foot+=`<input type="datetime-local" class="sched-in" id="dt_${p.id}" value="${p.scheduledAt?p.scheduledAt.slice(0,16):''}">`;
@@ -662,10 +645,7 @@ function renderQ(){
         <div class="pc-title">${esc(p.title)}</div>
         <div class="pc-text">${esc(p.content)}</div>
         <div class="pc-tags">${esc(p.hashtags)}</div>
-        <div class="pc-photo-wrap">
-          <div class="pc-photo"><b>📷</b> ${esc(p.photo)}</div>
-          ${imgHtml}
-        </div>
+        <div class="pc-photo"><b>📷 建議配圖：</b>${esc(p.photo)}</div>
         ${si}${pi}
       </div>
       <div class="pc-f">${foot}</div>
@@ -793,7 +773,7 @@ from datetime import datetime
 
 # ── ENV VARS（在 Zeabur Dashboard 設定）──
 CLAUDE_KEY  = os.environ['CLAUDE_API_KEY']
-GOOGLE_KEY  = os.environ['GOOGLE_AI_KEY']
+# 圖片功能已停用
 FB_TOKEN    = os.environ['FB_PAGE_TOKEN']
 FB_PAGE_ID  = os.environ['FB_PAGE_ID']
 

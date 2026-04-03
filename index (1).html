@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>聖豐長照｜FB 全自動發文系統 v2</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500;600&display=swap');
+:root{
+  --g:#1B5E20;--gm:#2E7D32;--gl:#43A047;--gp:#E8F5E9;--gxp:#F1F8F2;
+  --am:#F57F17;--ap:#FFF8E1;--rd:#C62828;--rp:#FFEBEE;
+  --bl:#1565C0;--bp:#E3F2FD;--pu:#6A1B9A;--pp:#F3E5F5;
+  --tx:#1A2E1B;--ts:#4A6741;--tx2:#7A9B77;
+  --bg:#F4F9F4;--card:#fff;--bdr:#C8E6C9;
+  --r:14px;--sh:0 2px 16px rgba(27,94,32,.09);--shl:0 6px 32px rgba(27,94,32,.14);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;}
+
+/* NAV */
+.nav{background:var(--g);display:flex;align-items:stretch;padding:0 16px;overflow-x:auto;position:sticky;top:0;z-index:100;}
+.nav-brand{font-family:'Noto Serif TC',serif;font-size:.95rem;font-weight:700;color:#fff;padding:14px 16px 14px 0;white-space:nowrap;border-right:1px solid rgba(255,255,255,.15);margin-right:4px;flex-shrink:0;}
+.tab{padding:14px 14px;font-size:.82rem;font-weight:500;color:rgba(255,255,255,.7);cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;transition:all .2s;}
+.tab:hover{color:#fff;}
+.tab.active{color:#fff;border-bottom-color:#A5D6A7;}
+.tab .bdg{display:inline-block;background:rgba(255,255,255,.25);border-radius:99px;padding:1px 7px;font-size:.7rem;margin-left:4px;}
+
+/* PAGE */
+.page{display:none;max-width:920px;margin:0 auto;padding:22px 14px 80px;}
+.page.active{display:block;}
+
+/* CARD */
+.card{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:20px;box-shadow:var(--sh);margin-bottom:18px;}
+.sec{font-family:'Noto Serif TC',serif;font-size:1.05rem;color:var(--g);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.sec small{font-size:.75rem;color:var(--tx2);font-family:'Noto Sans TC',sans-serif;font-weight:400;}
+
+/* FIELDS */
+.f{margin-bottom:14px;}
+.f label{display:block;font-size:.83rem;font-weight:600;color:var(--ts);margin-bottom:5px;}
+.f input,.f select,.f textarea{width:100%;padding:9px 13px;border:1.5px solid var(--bdr);border-radius:10px;font-size:.86rem;font-family:inherit;color:var(--tx);background:#fff;transition:border-color .2s;}
+.f input:focus,.f select:focus,.f textarea:focus{outline:none;border-color:var(--gl);}
+.f textarea{min-height:80px;resize:vertical;}
+.f .hint{font-size:.76rem;color:var(--tx2);margin-top:4px;line-height:1.6;}
+.f .hint a{color:var(--bl);text-decoration:none;}
+.f .hint a:hover{text-decoration:underline;}
+.row{display:flex;gap:10px;flex-wrap:wrap;}
+.row .f{flex:1;min-width:150px;margin-bottom:0;}
+
+/* BUTTONS */
+.btn{padding:9px 18px;border:none;border-radius:10px;font-size:.85rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;display:inline-flex;align-items:center;gap:6px;}
+.btn-p{background:linear-gradient(135deg,var(--g) 0%,var(--gl) 100%);color:#fff;}
+.btn-p:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(27,94,32,.28);}
+.btn-p:active{transform:none;}
+.btn-p:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none;}
+.btn-o{background:#fff;color:var(--g);border:1.5px solid var(--bdr);}
+.btn-o:hover{border-color:var(--gl);background:var(--gxp);}
+.btn-d{background:var(--rp);color:var(--rd);border:1px solid #FFCDD2;}
+.btn-d:hover{background:var(--rd);color:#fff;}
+.btn-a{background:var(--ap);color:var(--am);border:1px solid #FFE082;}
+.btn-a:hover{background:var(--am);color:#fff;}
+.btn-pu{background:var(--pp);color:var(--pu);border:1px solid #CE93D8;}
+.btn-pu:hover{background:var(--pu);color:#fff;}
+.btn-sm{padding:6px 12px;font-size:.78rem;}
+.btn-full{width:100%;justify-content:center;}
+
+/* INFO BOXES */
+.ib{border-radius:10px;padding:13px 15px;font-size:.83rem;line-height:1.7;margin-bottom:14px;}
+.ib-g{background:var(--gp);color:var(--g);border:1px solid #A5D6A7;}
+.ib-a{background:var(--ap);color:#5D4000;border:1px solid #FFE082;}
+.ib-b{background:var(--bp);color:#0D3B7A;border:1px solid #BBDEFB;}
+.ib-pu{background:var(--pp);color:#4A148C;border:1px solid #CE93D8;}
+
+/* STATUS DOTS */
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;}
+.dot-ok{background:#43A047;}.dot-warn{background:#F57F17;}.dot-err{background:#E53935;}
+
+/* PROGRESS */
+.prog-w{display:none;margin-top:12px;}
+.prog-w.show{display:block;}
+.prog-info{display:flex;justify-content:space-between;font-size:.78rem;color:var(--tx2);margin-bottom:5px;}
+.prog-bg{height:5px;background:var(--gp);border-radius:99px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--g),var(--gl));border-radius:99px;transition:width .4s ease;width:0%;}
+
+/* STATS GRID */
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:10px;margin-bottom:18px;}
+.stat{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:13px;text-align:center;box-shadow:var(--sh);}
+.stat-n{font-size:1.45rem;font-weight:700;font-family:'Noto Serif TC',serif;}
+.stat-l{font-size:.71rem;color:var(--tx2);margin-top:2px;}
+
+/* POST CARDS */
+.pc{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden;margin-bottom:12px;box-shadow:var(--sh);transition:box-shadow .2s;animation:fu .3s ease both;}
+.pc:hover{box-shadow:var(--shl);}
+@keyframes fu{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+.pc-h{padding:10px 15px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:7px;border-bottom:1px solid var(--bdr);}
+.pc-h.s-pending{background:var(--gxp);}
+.pc-h.s-scheduled{background:var(--ap);}
+.pc-h.s-posted{background:var(--bp);}
+.pc-h.s-failed{background:var(--rp);}
+.pc-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.num-tag{font-size:.76rem;font-weight:700;color:var(--g);}
+.tp-tag{font-size:.7rem;background:var(--g);color:#fff;padding:2px 8px;border-radius:99px;}
+.st-tag{font-size:.7rem;padding:2px 8px;border-radius:99px;font-weight:600;}
+.st-pending{background:var(--gp);color:var(--g);}
+.st-scheduled{background:var(--ap);color:var(--am);}
+.st-posted{background:var(--bp);color:var(--bl);}
+.st-failed{background:var(--rp);color:var(--rd);}
+.pc-b{padding:13px 15px;}
+.pc-title{font-family:'Noto Serif TC',serif;font-size:.9rem;font-weight:700;color:var(--g);margin-bottom:9px;}
+.pc-text{font-size:.84rem;line-height:1.85;color:var(--tx);white-space:pre-wrap;margin-bottom:9px;}
+.pc-tags{font-size:.77rem;color:#1976D2;margin-bottom:9px;line-height:1.7;}
+.pc-photo-wrap{margin-bottom:9px;}
+.pc-photo{background:var(--ap);border:1px solid #FFE082;border-radius:8px;padding:8px 11px;font-size:.78rem;color:#795548;line-height:1.6;}
+.pc-photo b{color:var(--am);}
+.pc-img{width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin-top:8px;border:1px solid var(--bdr);}
+.pc-img-gen{background:var(--pp);border:1px dashed #CE93D8;border-radius:10px;padding:10px 12px;font-size:.78rem;color:var(--pu);margin-top:6px;display:flex;align-items:center;gap:8px;}
+.pc-time{font-size:.76rem;color:var(--tx2);margin-top:7px;display:flex;align-items:center;gap:5px;}
+.pc-f{padding:9px 15px;display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid var(--bdr);background:var(--gxp);}
+.sched-in{padding:5px 9px;border:1.5px solid var(--bdr);border-radius:8px;font-size:.78rem;font-family:inherit;}
+.sched-in:focus{outline:none;border-color:var(--gl);}
+
+/* FILTER */
+.fr{display:flex;gap:9px;margin-bottom:14px;flex-wrap:wrap;}
+.fr input{flex:1;min-width:150px;padding:8px 13px;border:1.5px solid var(--bdr);border-radius:10px;font-size:.83rem;font-family:inherit;}
+.fr input:focus{outline:none;border-color:var(--gl);}
+.fr select{padding:8px 13px;border:1.5px solid var(--bdr);border-radius:10px;font-size:.83rem;font-family:inherit;background:#fff;}
+
+/* LOG */
+.log-list{max-height:280px;overflow-y:auto;border:1px solid var(--bdr);border-radius:10px;padding:10px;}
+.li{padding:6px 9px;border-radius:7px;margin-bottom:5px;font-size:.78rem;line-height:1.5;}
+.li-ok{background:#E8F5E9;color:#1B5E20;}
+.li-err{background:var(--rp);color:var(--rd);}
+.li-info{background:var(--bp);color:#1565C0;}
+.li-pu{background:var(--pp);color:var(--pu);}
+.lt{font-size:.7rem;opacity:.6;margin-right:5px;}
+
+/* SKEL */
+.sk-c{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:12px;animation:pulse 1.4s ease infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+.sk{height:10px;background:var(--gp);border-radius:6px;margin-bottom:8px;}
+.sk.w40{width:40%;}.sk.w70{width:70%;}.sk.w100{width:100%;}
+
+/* COMPARISON TABLE */
+.cmp{width:100%;border-collapse:collapse;font-size:.83rem;}
+.cmp th{background:var(--g);color:#fff;padding:9px 12px;text-align:left;font-weight:600;}
+.cmp td{padding:9px 12px;border-bottom:1px solid var(--bdr);vertical-align:middle;}
+.cmp tr:hover td{background:var(--gxp);}
+.rec{background:#FFF8E1;font-weight:600;color:#5D4000;}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--g);color:#fff;padding:9px 20px;border-radius:99px;font-size:.84rem;font-weight:500;transition:transform .3s;z-index:999;pointer-events:none;white-space:nowrap;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:99px;}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="nav-brand">🌿 聖豐長照 v2</div>
+  <div class="tab active" onclick="pg('setup',this)">⚙️ 設定</div>
+  <div class="tab" onclick="pg('generate',this)">✨ 生成文案</div>
+  <div class="tab" onclick="pg('queue',this)">📋 佇列 <span class="bdg" id="qBdg">0</span></div>
+  <div class="tab" onclick="pg('deploy',this)">🚀 部署說明</div>
+  <div class="tab" onclick="pg('log',this)">📊 紀錄</div>
+</div>
+
+<!-- ══ PAGE: SETUP ══ -->
+<div class="page active" id="page-setup">
+  <div class="card">
+    <div class="sec">🔑 API 金鑰設定</div>
+    <div class="ib ib-a">⚠️ 金鑰僅存於您的瀏覽器本機 localStorage，不會上傳任何伺服器。</div>
+
+    <div class="f">
+      <label>Claude API Key <span id="cdot"></span></label>
+      <div class="row">
+        <div class="f" style="flex:3"><input type="password" id="ck" placeholder="sk-ant-api03-…"></div>
+        <button class="btn btn-o" onclick="testClaude()" style="align-self:flex-end;margin-bottom:0;">測試</button>
+      </div>
+      <div class="hint">→ <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></div>
+    </div>
+
+
+
+    <div class="f">
+      <label>Facebook Page Access Token <span id="fdot"></span></label>
+      <div class="row">
+        <div class="f" style="flex:3"><input type="password" id="ft" placeholder="EAAxxxxxxxx…"></div>
+        <button class="btn btn-o" onclick="testFB()" style="align-self:flex-end;margin-bottom:0;">測試</button>
+      </div>
+      <div class="hint">→ <a href="https://developers.facebook.com/tools/explorer" target="_blank">Graph API Explorer</a>，需 <code>pages_manage_posts</code> 權限</div>
+    </div>
+
+    <div class="f">
+      <label>Facebook Page ID</label>
+      <input type="text" id="fid" placeholder="61588205768728（網址 ?id= 後面的數字）">
+    </div>
+
+    <button class="btn btn-p btn-full" onclick="save()">💾 儲存所有設定</button>
+  </div>
+
+  <div class="card">
+    <div class="sec">📅 發文排程設定</div>
+    <div class="ib ib-b">ℹ️ 此頁面版本需保持瀏覽器開啟。想完全自動請見「🚀 部署說明」頁。</div>
+    <div class="row">
+      <div class="f"><label>發文頻率</label>
+        <select id="freq"><option value="1">每天</option><option value="2" selected>每 2 天</option><option value="3">每 3 天</option><option value="7">每週</option></select>
+      </div>
+      <div class="f"><label>發文時間</label><input type="time" id="ptime" value="13:30"></div>
+      <div class="f"><label>起始日期</label><input type="date" id="sdate"></div>
+    </div>
+    <button class="btn btn-a btn-full" style="margin-top:6px;" onclick="applySchedule()">🕐 套用排程到全部待發文案</button>
+  </div>
+</div>
+
+<!-- ══ PAGE: GENERATE ══ -->
+<div class="page" id="page-generate">
+  <div class="card">
+    <div class="sec">✨ AI 文案生成 <small>Claude 生文案 + Gemini 生配圖</small></div>
+    <div class="row" style="margin-bottom:12px;">
+      <div class="f"><label>篇數</label>
+        <select id="gc"><option value="5">5 篇</option><option value="10" selected>10 篇</option><option value="20">20 篇</option><option value="30">30 篇</option></select>
+      </div>
+      <div class="f"><label>主題</label>
+        <select id="gt">
+          <option value="all">全部主題（隨機）</option>
+          <option value="1">① 視病如親・品牌故事</option>
+          <option value="2">② 24H護理・安全守護</option>
+          <option value="3">③ 醫療照護・三高管理</option>
+          <option value="4">④ 失智症照護</option>
+          <option value="5">⑤ 營養師・餐食照護</option>
+          <option value="6">⑥ 復健・樂齡運動</option>
+          <option value="7">⑦ 家屬心聲・罪惡感療癒</option>
+          <option value="8">⑧ 生活日常・長輩故事</option>
+          <option value="9">⑨ 環境設備介紹</option>
+          <option value="10">⑩ 節日祝福・季節話題</option>
+          <option value="11">⑪ 入住知識・選擇機構</option>
+          <option value="12">⑫ 照服員・護理師日記</option>
+          <option value="13">⑬ 互動型貼文</option>
+        </select>
+      </div>
+
+    </div>
+    <button class="btn btn-p btn-full" id="genBtn" onclick="generate()">✨ 開始生成文案</button>
+    <div class="prog-w" id="gp">
+      <div class="prog-info"><span id="gpl">生成中…</span><span id="gpp">0%</span></div>
+      <div class="prog-bg"><div class="prog-fill" id="gpf"></div></div>
+    </div>
+  </div>
+  <div id="genRes"></div>
+</div>
+
+<!-- ══ PAGE: QUEUE ══ -->
+<div class="page" id="page-queue">
+  <div class="stats" id="qStats"></div>
+  <div class="fr">
+    <input type="text" id="qs" placeholder="🔍 搜尋文案…" oninput="renderQ()">
+    <select id="qsf" onchange="renderQ()">
+      <option value="all">全部</option><option value="pending">待發文</option>
+      <option value="scheduled">已排程</option><option value="posted">已發布</option><option value="failed">失敗</option>
+    </select>
+    <button class="btn btn-d btn-sm" onclick="clearPosted()">🗑 清除已發布</button>
+    <button class="btn btn-p btn-sm" onclick="postAllScheduled()">📤 發送所有到期文案</button>
+  </div>
+  <div id="qList"></div>
+</div>
+
+<!-- ══ PAGE: DEPLOY ══ -->
+<div class="page" id="page-deploy">
+  <div class="card">
+    <div class="sec">🚀 自動化方案比較</div>
+    <table class="cmp">
+      <tr><th>方案</th><th>難度</th><th>費用</th><th>需開電腦</th><th>適合你？</th></tr>
+      <tr class="rec"><td>⭐ Zeabur Python Cron</td><td>中</td><td>你已付費</td><td>❌ 不需要</td><td>✅ 最推薦</td></tr>
+      <tr><td>n8n（Zeabur 自架）</td><td>中</td><td>免費</td><td>❌ 不需要</td><td>✅ 推薦</td></tr>
+      <tr><td>Make.com</td><td>低</td><td>免費 1000 ops</td><td>❌ 不需要</td><td>⚠️ 超量付費</td></tr>
+      <tr><td>此頁面（瀏覽器）</td><td>低</td><td>免費</td><td>✅ 需要</td><td>⚠️ 測試用</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="sec">🐍 方案一：Zeabur Python Cron <small>最推薦，一次設定永久自動</small></div>
+    <div class="ib ib-g">✅ 完整流程：Zeabur 每 2 天 13:30 自動觸發 → Claude 生成文案 → Gemini 生成配圖 → 自動上傳到 FB 粉絲專頁</div>
+    <ol style="padding-left:18px;font-size:.86rem;line-height:2.4;color:var(--ts);">
+      <li>點下方「⬇️ 下載 Python 程式」</li>
+      <li>前往你的 <strong>Zeabur Dashboard</strong> → 新增 Project → 新增 Python Service</li>
+      <li>上傳 <code>main.py</code> 與 <code>requirements.txt</code></li>
+      <li>在 Service 的 <strong>Environment Variables</strong> 填入：<br>
+        <code>CLAUDE_API_KEY</code> / <code>FB_PAGE_TOKEN</code> / <code>FB_PAGE_ID</code>
+      </li>
+      <li>Zeabur 自動部署，每 2 天 13:30 自動發文 ✅</li>
+    </ol>
+    <button class="btn btn-p btn-full" onclick="dlPython()">⬇️ 下載 Python 程式（含 requirements.txt）</button>
+  </div>
+
+  <div class="card">
+    <div class="sec">🔄 方案二：n8n 自架於 Zeabur <small>視覺化流程，進階彈性</small></div>
+    <div class="ib ib-b">n8n 是開源自動化工具，部署在你的 Zeabur 上就完全免費，還能視覺化拖拉設定流程。</div>
+    <ol style="padding-left:18px;font-size:.86rem;line-height:2.4;color:var(--ts);">
+      <li>Zeabur → Marketplace → 搜尋 <strong>n8n</strong> → 一鍵部署</li>
+      <li>在 n8n 建立 Workflow：Schedule → HTTP Request (Claude API) → HTTP Request (Gemini) → HTTP Request (FB Graph API)</li>
+      <li>設定排程每 2 天 13:30 執行</li>
+      <li>點下方「⬇️ 下載 n8n Workflow JSON」匯入即可</li>
+    </ol>
+    <button class="btn btn-o btn-full" onclick="dlN8n()">⬇️ 下載 n8n Workflow JSON</button>
+  </div>
+
+  <div class="card">
+    <div class="sec">🔑 Facebook Token 取得步驟</div>
+    <ol style="padding-left:18px;font-size:.86rem;line-height:2.5;color:var(--ts);">
+      <li>前往 <a href="https://developers.facebook.com/apps" target="_blank" style="color:var(--bl)">developers.facebook.com/apps</a> → 建立應用程式 → 選「其他」→「商業」</li>
+      <li>左側選單 → <strong>Graph API Explorer</strong></li>
+      <li>右上角選你的粉絲專頁（Page）</li>
+      <li>點「新增權限」→ 勾選 <code>pages_manage_posts</code> + <code>pages_read_engagement</code></li>
+      <li>點「生成存取權杖」→ 複製 Token</li>
+      <li>⚠️ 短期 Token 只有 1 小時，需換成<strong>長期 Token</strong>（我幫你生成換 Token 的請求）</li>
+    </ol>
+    <button class="btn btn-o btn-full" onclick="showLongToken()">🔧 產生長期 Token 換取指令</button>
+    <div id="ltResult" style="display:none;margin-top:12px;"></div>
+  </div>
+</div>
+
+<!-- ══ PAGE: LOG ══ -->
+<div class="page" id="page-log">
+  <div class="card">
+    <div class="sec">📊 發文紀錄</div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+      <button class="btn btn-d btn-sm" onclick="clearLog()">🗑 清除</button>
+    </div>
+    <div class="log-list" id="logList"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══ STATE ═══
+let queue = JSON.parse(localStorage.getItem('sf2_q') || '[]');
+let logs  = JSON.parse(localStorage.getItem('sf2_l') || '[]');
+let cfg   = JSON.parse(localStorage.getItem('sf2_cfg') || '{}');
+let schedTimer = null;
+
+const TMAP = {
+  '1':'視病如親・品牌故事','2':'24H護理・安全守護','3':'醫療照護・三高管理',
+  '4':'失智症照護','5':'營養師・餐食照護','6':'復健・樂齡運動',
+  '7':'家屬心聲・罪惡感療癒','8':'生活日常・長輩故事','9':'環境設備介紹',
+  '10':'節日祝福・季節話題','11':'入住知識・選擇機構','12':'照服員・護理師日記','13':'互動型貼文'
+};
+
+// ═══ INIT ═══
+window.onload = () => {
+  loadCfg();
+  renderQ(); renderStats(); renderLog(); updateBadge();
+  document.getElementById('sdate').value = toDay();
+  schedTimer = setInterval(tickScheduler, 30000);
+  tickScheduler();
+};
+
+function toDay(){ return new Date().toISOString().slice(0,10); }
+
+// ═══ NAV ═══
+function pg(id, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  el.classList.add('active');
+  if(id==='queue'){ renderStats(); renderQ(); }
+}
+
+// ═══ CONFIG ═══
+function loadCfg(){
+  if(cfg.ck)  document.getElementById('ck').value  = cfg.ck;
+
+  if(cfg.ft)  document.getElementById('ft').value  = cfg.ft;
+  if(cfg.fid) document.getElementById('fid').value = cfg.fid;
+  if(cfg.freq) document.getElementById('freq').value = cfg.freq;
+  if(cfg.ptime) document.getElementById('ptime').value = cfg.ptime;
+  updDots();
+}
+function save(){
+  cfg = {
+    ck:    document.getElementById('ck').value.trim(),
+    gk:    '',
+    ft:    document.getElementById('ft').value.trim(),
+    fid:   document.getElementById('fid').value.trim(),
+    freq:  document.getElementById('freq').value,
+    ptime: document.getElementById('ptime').value,
+  };
+  localStorage.setItem('sf2_cfg', JSON.stringify(cfg));
+  updDots(); toast('✅ 設定已儲存');
+}
+function updDots(){
+  const mk = (ok) => ok
+    ? '<span class="dot dot-ok"></span>已設定'
+    : '<span class="dot dot-warn"></span>未設定';
+  document.getElementById('cdot').innerHTML = mk(cfg.ck);
+  document.getElementById('fdot').innerHTML = mk(cfg.ft);
+}
+
+// ═══ TEST APIS ═══
+async function testClaude(){
+  if(!cfg.ck){ toast('請先儲存 Claude Key'); return; }
+  toast('🔍 測試 Claude…');
+  try{
+    const r = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:10,messages:[{role:'user',content:'Hi'}]})});
+    const d = await r.json();
+    d.content ? toast('✅ Claude 連線正常！') : toast('❌ '+( d.error?.message||'失敗'));
+  }catch(e){ toast('❌ '+e.message); }
+}
+
+async function testGemini(){
+  if(!cfg.gk){ toast('請先儲存 Google AI Key'); return; }
+  toast('🎨 測試中，請稍等…');
+
+  // Method 1: Imagen 3
+  try{
+    const r1 = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${cfg.gk}`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({instances:[{prompt:'A warm elderly care nurse helping an elderly person, Taiwan, natural light, photorealistic'}], parameters:{sampleCount:1}})
+    });
+    const d1 = await r1.json();
+    addLog('info','Imagen3: '+JSON.stringify(d1).slice(0,200));
+    const img1 = d1.predictions?.[0]?.bytesBase64Encoded;
+    if(img1){ cfg.geminiModel='imagen3'; localStorage.setItem('sf2_cfg',JSON.stringify(cfg)); toast('✅ Imagen 3 生圖成功！'); addLog('pu','Imagen 3 成功'); return; }
+  }catch(e1){ addLog('info','Imagen3 err: '+e1.message); }
+
+  // Method 2: Gemini Flash models
+  for(const m of ['gemini-2.0-flash-exp','gemini-2.0-flash-preview-image-generation','gemini-2.0-flash']){
+    try{
+      const r2 = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${cfg.gk}`,{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({contents:[{parts:[{text:'Generate image: warm elderly care Taiwan natural light'}]}],generationConfig:{responseModalities:['IMAGE','TEXT']}})
+      });
+      const d2 = await r2.json();
+      addLog('info',m+': '+JSON.stringify(d2).slice(0,200));
+      const img2 = d2.candidates?.[0]?.content?.parts?.find(p=>p.inlineData);
+      if(img2){ cfg.geminiModel=m; localStorage.setItem('sf2_cfg',JSON.stringify(cfg)); toast('✅ 生圖成功！'+m); addLog('pu','成功：'+m); return; }
+    }catch(e2){ addLog('info',m+' err: '+e2.message); }
+  }
+  toast('❌ 失敗，請到「紀錄」頁查看錯誤詳情');
+  addLog('err','所有生圖方法失敗');
+}
+
+async function testFB(){
+  if(!cfg.ft||!cfg.fid){ toast('請填入 FB Token 與 Page ID'); return; }
+  toast('🔍 測試 FB…');
+  try{
+    const r = await fetch(`https://graph.facebook.com/v19.0/${cfg.fid}?fields=name&access_token=${cfg.ft}`);
+    const d = await r.json();
+    d.name ? toast('✅ FB 粉專：'+d.name) : toast('❌ '+(d.error?.message||'失敗'));
+  }catch(e){ toast('❌ '+e.message); }
+}
+
+// ═══ SCHEDULE ═══
+function applySchedule(){
+  const freq = parseInt(document.getElementById('freq').value);
+  const time = document.getElementById('ptime').value;
+  const start = document.getElementById('sdate').value;
+  if(!start){ toast('請選擇起始日期'); return; }
+  const pending = queue.filter(p=>p.status==='pending');
+  if(!pending.length){ toast('沒有待發文案，請先生成'); return; }
+  let d = new Date(start+'T'+time+':00');
+  let n=0;
+  for(const p of pending){
+    p.scheduledAt = d.toISOString();
+    p.status = 'scheduled';
+    d = new Date(d.getTime() + freq*86400000);
+    n++;
+  }
+  saveQ(); renderQ(); renderStats(); updateBadge();
+  toast(`✅ 已為 ${n} 篇設定排程`);
+  addLog('info',`設定 ${n} 篇排程，每 ${freq} 天一篇，從 ${start} 起`);
+}
+
+// ═══ GENERATE ═══
+function buildPrompt(count, topicKey){
+  const ti = topicKey==='all'
+    ? `從13個主題均衡隨機選取，生成 ${count} 篇（主題盡量不重複）：1.視病如親・品牌故事 2.24H護理・安全守護 3.醫療照護・三高管理 4.失智症照護 5.營養師・餐食照護 6.復健・樂齡運動 7.家屬心聲・罪惡感療癒 8.生活日常・長輩故事 9.環境設備介紹 10.節日祝福・季節話題 11.入住知識・選擇機構 12.照服員・護理師日記 13.互動型貼文`
+    : `主題「${TMAP[topicKey]}」，${count} 篇，各篇切入角度不同`;
+  return `你是屏東聖豐住宿長照機構的社群文案專家。
+【品牌】屏東聖豐住宿長照機構｜電話08-7515938｜核心理念：視病如親
+【任務】${ti}
+【格式】每篇5句話80~120字，CTA輪替（電話/留言/私訊/分享），結尾3~5個hashtag（必含#屏東長照 #聖豐長照 #視病如親），最後一行配圖建議（20~35字真實可拍攝畫面描述）。
+【輸出】嚴格JSON陣列，無前言無markdown：
+[{"no":1,"topic":"主題","title":"標題","content":"內容","hashtags":"標籤","photo":"配圖建議","imgPrompt":"英文Gemini生圖prompt，溫暖寫實風格，台灣長照機構場景，自然光"}]`;
+}
+
+async function geminiGenImage(prompt){
+  if(!cfg.gk) return null;
+  const fullPrompt = prompt + ', warm natural light, realistic photo style, Taiwan elderly care, heartwarming';
+  const model = cfg.geminiModel || 'imagen3';
+
+  // Imagen 3
+  if(model === 'imagen3'){
+    try{
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${cfg.gk}`,{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({instances:[{prompt:fullPrompt}], parameters:{sampleCount:1}})
+      });
+      const d = await r.json();
+      const b64 = d.predictions?.[0]?.bytesBase64Encoded;
+      if(b64) return 'data:image/png;base64,'+b64;
+    }catch(e){ console.warn('Imagen3 err:',e); }
+  }
+
+  // Gemini Flash fallback
+  try{
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cfg.gk}`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:fullPrompt}]}],generationConfig:{responseModalities:['IMAGE','TEXT']}})
+    });
+    const d = await r.json();
+    const img = d.candidates?.[0]?.content?.parts?.find(p=>p.inlineData);
+    if(img) return 'data:'+img.inlineData.mimeType+';base64,'+img.inlineData.data;
+  }catch(e){ console.warn('Gemini img err:',e); }
+  return null;
+}
+
+async function generate(){
+  if(!cfg.ck){ toast('請先在設定頁填入 Claude API Key'); return; }
+  const count = parseInt(document.getElementById('gc').value);
+  const topicKey = document.getElementById('gt').value;
+  const doImg = document.getElementById('genImg').value === 'gemini';
+
+  const btn = document.getElementById('genBtn');
+  btn.disabled=true; btn.textContent='⏳ 生成中…';
+  setP(true,10,'AI 思考文案架構…');
+  showSkel(Math.min(count,4));
+
+  try{
+    setP(true,35,'Claude 生成文案中…');
+    const r = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:9000,
+        messages:[{role:'user',content:buildPrompt(count,topicKey)}]})});
+    const d = await r.json();
+    const raw = d.content?.map(i=>i.text||'').join('')||'';
+    let posts=[];
+    try{ const m=raw.match(/\[[\s\S]*\]/); if(m) posts=JSON.parse(m[0]); }catch(e){}
+
+    setP(true,60,'加入佇列…');
+    const offset = queue.length;
+    posts = posts.map((p,i)=>({
+      id: Date.now()+i, no: offset+i+1,
+      topic: p.topic||'通用', title: p.title||'', content: p.content||'',
+      hashtags: p.hashtags||'', photo: p.photo||'', imgPrompt: p.imgPrompt||'',
+      status:'pending', scheduledAt:null, postedAt:null, fbPostId:null,
+      imageB64: null, imageUrl: null
+    }));
+
+    if(doImg && cfg.gk){
+      setP(true,70,'Gemini 生成配圖中…（每篇約5秒）');
+      for(let i=0;i<posts.length;i++){
+        const p = posts[i];
+        setP(true, 70+Math.round(i/posts.length*25), `Gemini 生圖 ${i+1}/${posts.length}…`);
+        p.imageB64 = await geminiGenImage(p.imgPrompt || p.photo);
+        if(p.imageB64) addLog('pu',`第${p.no}篇 Gemini 生圖完成`);
+        await new Promise(res=>setTimeout(res,1200)); // rate limit buffer
+      }
+    }
+
+    setP(true,97,'整理文案…');
+    queue = [...queue, ...posts];
+    saveQ(); renderGenResults(posts); renderStats(); updateBadge();
+    addLog('info',`生成 ${posts.length} 篇文案並加入佇列`);
+    toast(`✅ ${posts.length} 篇文案已加入佇列！`);
+    setP(true,100,'完成！');
+    setTimeout(()=>setP(false),700);
+  }catch(e){
+    document.getElementById('genRes').innerHTML=`<div class="ib ib-a">❌ ${esc(e.message)}</div>`;
+    setP(false);
+  }
+  btn.disabled=false; btn.textContent='✨ 繼續生成更多文案';
+}
+
+function setP(show,pct,label){
+  const w=document.getElementById('gp');
+  w.classList.toggle('show',show);
+  if(show){
+    document.getElementById('gpf').style.width=pct+'%';
+    document.getElementById('gpl').textContent=label||'';
+    document.getElementById('gpp').textContent=pct+'%';
+  }
+}
+function showSkel(n){
+  document.getElementById('genRes').innerHTML=Array(n).fill('').map(()=>`
+    <div class="sk-c"><div class="sk w40"></div><div class="sk w100"></div><div class="sk w70"></div><div class="sk w100"></div></div>`).join('');
+}
+function renderGenResults(posts){
+  document.getElementById('genRes').innerHTML = posts.map((p,i)=>`
+    <div class="pc" style="animation-delay:${i*.05}s">
+      <div class="pc-h s-pending">
+        <div class="pc-meta"><span class="num-tag">第${p.no}篇</span><span class="tp-tag">${esc(p.topic)}</span></div>
+        <span class="st-tag st-pending">已加入佇列</span>
+      </div>
+      <div class="pc-b">
+        <div class="pc-title">${esc(p.title)}</div>
+        <div class="pc-text">${esc(p.content)}</div>
+        <div class="pc-tags">${esc(p.hashtags)}</div>
+        <div class="pc-photo"><b>📷 建議配圖：</b>${esc(p.photo)}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ═══ QUEUE ═══
+function renderStats(){
+  const c={pending:0,scheduled:0,posted:0,failed:0};
+  queue.forEach(p=>{ if(c[p.status]!==undefined) c[p.status]++; });
+  document.getElementById('qStats').innerHTML = `
+    <div class="stat"><div class="stat-n" style="color:var(--g)">${c.pending}</div><div class="stat-l">待發文</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--am)">${c.scheduled}</div><div class="stat-l">已排程</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--bl)">${c.posted}</div><div class="stat-l">已發布</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--rd)">${c.failed}</div><div class="stat-l">失敗</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--g)">${queue.length}</div><div class="stat-l">總計</div></div>`;
+}
+function renderQ(){
+  const q=document.getElementById('qs')?.value?.toLowerCase()||'';
+  const s=document.getElementById('qsf')?.value||'all';
+  const list=queue.filter(p=>(s==='all'||p.status===s)&&(!q||(p.title+p.content+p.topic).toLowerCase().includes(q)));
+  const el=document.getElementById('qList');
+  if(!list.length){ el.innerHTML=`<div class="ib ib-g" style="text-align:center">佇列為空，請先生成文案 🌿</div>`; return; }
+  const stLabel={pending:'待發文',scheduled:'已排程',posted:'已發布',failed:'發文失敗'};
+  el.innerHTML=list.map((p,i)=>{
+    const hc='s-'+p.status;
+    const si=p.scheduledAt?`<div class="pc-time">🕐 排程：${fmtD(p.scheduledAt)}</div>`:'';
+    const pi=p.postedAt?`<div class="pc-time">✅ 發布：${fmtD(p.postedAt)}</div>`:'';
+    const lk=p.fbPostId?`<a href="https://www.facebook.com/${p.fbPostId}" target="_blank" class="btn btn-o btn-sm">🔗 FB</a>`:'';
+
+    let foot='';
+    if(p.status!=='posted'){
+      foot+=`<input type="datetime-local" class="sched-in" id="dt_${p.id}" value="${p.scheduledAt?p.scheduledAt.slice(0,16):''}">`;
+      foot+=`<button class="btn btn-a btn-sm" onclick="setSched('${p.id}')">🕐 排程</button>`;
+      foot+=`<button class="btn btn-p btn-sm" onclick="postNow('${p.id}')">📤 立即發文</button>`;
+    }
+    foot+=`<button class="btn btn-d btn-sm" onclick="delPost('${p.id}')">🗑</button>${lk}`;
+    return `<div class="pc" style="animation-delay:${i*.04}s">
+      <div class="pc-h ${hc}">
+        <div class="pc-meta"><span class="num-tag">第${p.no}篇</span><span class="tp-tag">${esc(p.topic)}</span></div>
+        <span class="st-tag st-${p.status}">${stLabel[p.status]}</span>
+      </div>
+      <div class="pc-b">
+        <div class="pc-title">${esc(p.title)}</div>
+        <div class="pc-text">${esc(p.content)}</div>
+        <div class="pc-tags">${esc(p.hashtags)}</div>
+        <div class="pc-photo"><b>📷 建議配圖：</b>${esc(p.photo)}</div>
+        ${si}${pi}
+      </div>
+      <div class="pc-f">${foot}</div>
+    </div>`;
+  }).join('');
+}
+function updateBadge(){
+  document.getElementById('qBdg').textContent=queue.filter(p=>p.status==='pending'||p.status==='scheduled').length;
+}
+
+// ═══ POSTING ═══
+async function postNow(id){
+  const p=queue.find(q=>String(q.id)===String(id));
+  if(!p) return;
+  if(!cfg.ft||!cfg.fid){ toast('請先設定 FB Token 與 Page ID'); return; }
+  toast('📤 發文中…');
+  const msg=`${p.title}\n\n${p.content}\n\n${p.hashtags}`;
+  try{
+    let imageId=null;
+    // Upload Gemini generated image to FB
+    if(p.imageB64){
+      try{
+        // Convert base64 to blob URL for FB
+        const imgUrl = await uploadImgToFB(p.imageB64, p.id);
+        if(imgUrl) imageId = imgUrl;
+      }catch(e){ console.warn('Image upload:',e); }
+    }
+    const body={message:msg, access_token:cfg.ft};
+    if(imageId) body.attached_media=[{media_fbid:imageId}];
+    const r=await fetch(`https://graph.facebook.com/v19.0/${cfg.fid}/feed`,{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(d.id){
+      p.status='posted'; p.postedAt=new Date().toISOString(); p.fbPostId=d.id;
+      saveQ(); renderQ(); renderStats(); updateBadge();
+      toast('✅ 發文成功！');
+      addLog('ok',`第${p.no}篇「${p.title.slice(0,20)}」發文成功 ID:${d.id}`);
+    } else {
+      p.status='failed'; saveQ(); renderQ();
+      const err=d.error?.message||JSON.stringify(d);
+      toast('❌ 發文失敗：'+err);
+      addLog('err',`第${p.no}篇失敗：${err}`);
+    }
+  }catch(e){ p.status='failed'; saveQ(); toast('❌ '+e.message); addLog('err','發文失敗：'+e.message); }
+}
+
+async function uploadImgToFB(b64, postId){
+  // Upload base64 image as FB photo (unpublished)
+  // Note: FB requires URL, so we use a data URI workaround via form upload
+  const mime = b64.split(';')[0].split(':')[1];
+  const byteStr = atob(b64.split(',')[1]);
+  const ab = new ArrayBuffer(byteStr.length);
+  const ia = new Uint8Array(ab);
+  for(let i=0;i<byteStr.length;i++) ia[i]=byteStr.charCodeAt(i);
+  const blob = new Blob([ab],{type:mime});
+  const fd = new FormData();
+  fd.append('source', blob, `post_${postId}.jpg`);
+  fd.append('published','false');
+  fd.append('access_token', cfg.ft);
+  const r = await fetch(`https://graph.facebook.com/v19.0/${cfg.fid}/photos`,{method:'POST',body:fd});
+  const d = await r.json();
+  return d.id || null;
+}
+
+async function postAllScheduled(){
+  const now=new Date();
+  const due=queue.filter(p=>p.status==='scheduled'&&p.scheduledAt&&new Date(p.scheduledAt)<=now);
+  if(!due.length){ toast('目前沒有到期的排程文案'); return; }
+  for(const p of due) await postNow(p.id);
+}
+
+function setSched(id){
+  const p=queue.find(q=>String(q.id)===String(id));
+  if(!p) return;
+  const dt=document.getElementById('dt_'+id)?.value;
+  if(!dt){ toast('請選擇時間'); return; }
+  p.scheduledAt=new Date(dt).toISOString(); p.status='scheduled';
+  saveQ(); renderQ(); renderStats();
+  toast('🕐 排程設定：'+fmtD(p.scheduledAt));
+  addLog('info',`第${p.no}篇排程：${fmtD(p.scheduledAt)}`);
+}
+
+function delPost(id){
+  queue=queue.filter(q=>String(q.id)!==String(id));
+  saveQ(); renderQ(); renderStats(); updateBadge(); toast('已刪除');
+}
+
+function clearPosted(){
+  queue=queue.filter(q=>q.status!=='posted');
+  saveQ(); renderQ(); renderStats(); updateBadge(); toast('已清除已發布文案');
+}
+
+// ═══ SCHEDULER TICK ═══
+async function tickScheduler(){
+  const now=new Date();
+  const due=queue.filter(p=>p.status==='scheduled'&&p.scheduledAt&&new Date(p.scheduledAt)<=now);
+  for(const p of due) await postNow(p.id);
+}
+
+// ═══ LONG TOKEN ═══
+function showLongToken(){
+  const el=document.getElementById('ltResult');
+  const token = document.getElementById('ft').value || cfg.ft || 'YOUR_SHORT_TOKEN';
+  const appId = 'YOUR_APP_ID';
+  const appSecret = 'YOUR_APP_SECRET';
+  el.style.display='block';
+  el.innerHTML=`<div class="ib ib-b">
+    在瀏覽器輸入以下網址換取長期 Token（60天有效）：<br><br>
+    <code style="font-size:.76rem;word-break:break-all;background:#fff;padding:6px 10px;border-radius:6px;display:block;margin-top:6px;">
+https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${token}
+    </code><br>
+    將 YOUR_APP_ID / YOUR_APP_SECRET 替換為你的 Meta App 資訊，回傳的 access_token 即為長期 Token。
+  </div>`;
+}
+
+// ═══ DOWNLOAD BACKEND ═══
+function dlPython(){
+  const main = `# 聖豐長照 FB 全自動發文後端 v2（Zeabur Python Cron）
+# 功能：每2天13:30 → Claude生文案 → Gemini生圖 → 上傳FB
+# 作者：自動生成
+
+import os, schedule, time, requests, base64, random, json
+import anthropic
+from datetime import datetime
+
+# ── ENV VARS（在 Zeabur Dashboard 設定）──
+CLAUDE_KEY  = os.environ['CLAUDE_API_KEY']
+# 圖片功能已停用
+FB_TOKEN    = os.environ['FB_PAGE_TOKEN']
+FB_PAGE_ID  = os.environ['FB_PAGE_ID']
+
+claude = anthropic.Anthropic(api_key=CLAUDE_KEY)
+
+TOPICS = [
+  '視病如親・品牌故事','24H護理・安全守護','醫療照護・三高管理',
+  '失智症照護','營養師・餐食照護','復健・樂齡運動',
+  '家屬心聲・罪惡感療癒','生活日常・長輩故事','環境設備介紹',
+  '節日祝福・季節話題','入住知識・選擇機構','照服員・護理師日記','互動型貼文'
+]
+
+def generate_post():
+    topic = random.choice(TOPICS)
+    prompt = f"""你是屏東聖豐住宿長照機構的社群文案專家。
+機構：屏東聖豐住宿長照機構｜電話08-7515938｜核心理念：視病如親
+請生成主題「{topic}」的 Facebook 貼文，5句話，必含 #屏東長照 #聖豐長照 #視病如親。
+最後一行「IMG_PROMPT: [英文Gemini生圖prompt，溫暖寫實，台灣長照場景]」
+只輸出貼文內容，不要任何前言。"""
+    msg = claude.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=600,
+        messages=[{"role":"user","content":prompt}]
+    )
+    return msg.content[0].text, topic
+
+def generate_image(img_prompt):
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key={GOOGLE_KEY}"
+    payload = {
+        "contents": [{"parts": [{"text": img_prompt + ", warm natural light, photorealistic, heartwarming, Taiwan elderly care"}]}],
+        "generationConfig": {"responseModalities": ["IMAGE","TEXT"]}
+    }
+    r = requests.post(url, json=payload)
+    d = r.json()
+    parts = d.get("candidates",[{}])[0].get("content",{}).get("parts",[])
+    for p in parts:
+        if "inlineData" in p:
+            return p["inlineData"]["data"], p["inlineData"]["mimeType"]
+    return None, None
+
+def upload_photo_to_fb(img_data, mime_type):
+    img_bytes = base64.b64decode(img_data)
+    files = {"source": (f"post_{int(time.time())}.jpg", img_bytes, mime_type)}
+    data = {"published": "false", "access_token": FB_TOKEN}
+    r = requests.post(f"https://graph.facebook.com/v19.0/{FB_PAGE_ID}/photos", files=files, data=data)
+    return r.json().get("id")
+
+def post_to_fb(text, img_data=None, mime_type=None):
+    photo_id = None
+    if img_data:
+        try:
+            photo_id = upload_photo_to_fb(img_data, mime_type)
+            print(f"  📸 圖片上傳成功 ID: {photo_id}")
+        except Exception as e:
+            print(f"  ⚠️ 圖片上傳失敗: {e}")
+    
+    # Extract text without IMG_PROMPT line
+    clean_text = "\\n".join([l for l in text.split("\\n") if not l.startswith("IMG_PROMPT:")])
+    
+    body = {"message": clean_text.strip(), "access_token": FB_TOKEN}
+    if photo_id:
+        body["attached_media"] = [{"media_fbid": photo_id}]
+    
+    r = requests.post(f"https://graph.facebook.com/v19.0/{FB_PAGE_ID}/feed", json=body)
+    return r.json()
+
+def job():
+    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    print(f"\\n[{now}] ▶ 開始執行自動發文")
+    try:
+        print("  ✍️  Claude 生成文案中…")
+        post_text, topic = generate_post()
+        print(f"  ✅ 文案完成（主題：{topic}）")
+        
+        # Extract img prompt
+        img_prompt = "elderly care Taiwan warm natural light"
+        for line in post_text.split("\\n"):
+            if line.startswith("IMG_PROMPT:"):
+                img_prompt = line.replace("IMG_PROMPT:","").strip()
+                break
+        
+        print("  🎨 Gemini 生成配圖中…")
+        img_data, mime = generate_image(img_prompt)
+        if img_data:
+            print("  ✅ 配圖生成完成")
+        else:
+            print("  ⚠️ 配圖生成失敗，純文字發文")
+        
+        print("  📤 發文到 Facebook…")
+        result = post_to_fb(post_text, img_data, mime)
+        
+        if "id" in result:
+            print(f"  ✅ 發文成功！Post ID: {result['id']}")
+        else:
+            print(f"  ❌ 發文失敗：{result}")
+    except Exception as e:
+        print(f"  ❌ 執行錯誤：{e}")
+
+# ── 排程：每2天 13:30 ──
+schedule.every(2).days.at("13:30").do(job)
+
+# 啟動時先執行一次（可選，測試用）
+# job()
+
+print("🌿 聖豐長照自動發文系統已啟動")
+print(f"   下次執行：每2天 13:30")
+print("   按 Ctrl+C 停止\\n")
+
+while True:
+    schedule.run_pending()
+    time.sleep(60)
+`;
+
+  const req = `anthropic>=0.25.0
+requests>=2.31.0
+schedule>=1.2.0
+`;
+
+  // Create zip-like download (two files)
+  const blob1 = new Blob([main],{type:'text/plain'});
+  const a1 = document.createElement('a');
+  a1.href = URL.createObjectURL(blob1);
+  a1.download = 'main.py';
+  a1.click();
+  
+  setTimeout(()=>{
+    const blob2 = new Blob([req],{type:'text/plain'});
+    const a2 = document.createElement('a');
+    a2.href = URL.createObjectURL(blob2);
+    a2.download = 'requirements.txt';
+    a2.click();
+    toast('⬇️ 已下載 main.py + requirements.txt');
+  }, 500);
+}
+
+function dlN8n(){
+  const wf = {
+    "name": "聖豐長照 FB 自動發文",
+    "nodes": [
+      {"name":"排程觸發","type":"n8n-nodes-base.scheduleTrigger","parameters":{"rule":{"interval":[{"field":"days","daysInterval":2}]},"triggerAtHour":13,"triggerAtMinute":30}},
+      {"name":"Claude 生成文案","type":"n8n-nodes-base.httpRequest","parameters":{"method":"POST","url":"https://api.anthropic.com/v1/messages","headers":{"Content-Type":"application/json"},"body":{"model":"claude-sonnet-4-20250514","max_tokens":600,"messages":[{"role":"user","content":"生成屏東聖豐長照FB貼文，5句話，含#屏東長照#聖豐長照#視病如親，最後一行IMG_PROMPT: [英文生圖prompt]"}]}}},
+      {"name":"Gemini 生圖","type":"n8n-nodes-base.httpRequest","parameters":{"method":"POST","url":"=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key={{$env.GOOGLE_AI_KEY}}","body":{"contents":[{"parts":[{"text":"={{$json.content[0].text}}"}]}],"generationConfig":{"responseModalities":["IMAGE","TEXT"]}}}},
+      {"name":"FB 發文","type":"n8n-nodes-base.httpRequest","parameters":{"method":"POST","url":"=https://graph.facebook.com/v19.0/{{$env.FB_PAGE_ID}}/feed","body":{"message":"={{$node['Claude 生成文案'].json.content[0].text}}","access_token":"={{$env.FB_PAGE_TOKEN}}"}}}
+    ],
+    "connections":{"排程觸發":{"main":[[{"node":"Claude 生成文案"}]]},"Claude 生成文案":{"main":[[{"node":"Gemini 生圖"}]]},"Gemini 生圖":{"main":[[{"node":"FB 發文"}]]}}
+  };
+  const blob = new Blob([JSON.stringify(wf,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'shengfeng_n8n_workflow.json';
+  a.click();
+  toast('⬇️ 已下載 n8n Workflow JSON');
+}
+
+// ═══ LOG ═══
+function addLog(type,msg){
+  logs.unshift({type,msg,time:new Date().toISOString()});
+  if(logs.length>200) logs=logs.slice(0,200);
+  localStorage.setItem('sf2_l',JSON.stringify(logs));
+  renderLog();
+}
+function renderLog(){
+  const el=document.getElementById('logList');
+  if(!el) return;
+  if(!logs.length){ el.innerHTML=`<div style="text-align:center;color:var(--tx2);padding:18px;font-size:.83rem;">尚無紀錄</div>`; return; }
+  el.innerHTML=logs.map(l=>`<div class="li li-${l.type}"><span class="lt">${fmtD(l.time)}</span>${esc(l.msg)}</div>`).join('');
+}
+function clearLog(){ logs=[]; localStorage.setItem('sf2_l','[]'); renderLog(); toast('已清除'); }
+
+// ═══ SAVE ═══
+function saveQ(){ localStorage.setItem('sf2_q',JSON.stringify(queue)); }
+
+// ═══ UTILS ═══
+function fmtD(iso){ if(!iso) return ''; const d=new Date(iso); return d.toLocaleDateString('zh-TW')+' '+d.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}); }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2800); }
+</script>
+</body>
+</html>

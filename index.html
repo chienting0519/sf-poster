@@ -423,35 +423,35 @@ async function testClaude(){
 
 async function testGemini(){
   if(!cfg.gk){ toast('請先儲存 Google AI Key'); return; }
-  // Try multiple models in order
-  const MODELS = [
-    'gemini-2.0-flash-exp',
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
-  ];
-  toast('🎨 測試 Gemini 生圖中…');
-  for(const model of MODELS){
+  toast('🎨 測試中，請稍等…');
+
+  // Method 1: Imagen 3
+  try{
+    const r1 = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${cfg.gk}`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({instances:[{prompt:'A warm elderly care nurse helping an elderly person, Taiwan, natural light, photorealistic'}], parameters:{sampleCount:1}})
+    });
+    const d1 = await r1.json();
+    addLog('info','Imagen3: '+JSON.stringify(d1).slice(0,200));
+    const img1 = d1.predictions?.[0]?.bytesBase64Encoded;
+    if(img1){ cfg.geminiModel='imagen3'; localStorage.setItem('sf2_cfg',JSON.stringify(cfg)); toast('✅ Imagen 3 生圖成功！'); addLog('pu','Imagen 3 成功'); return; }
+  }catch(e1){ addLog('info','Imagen3 err: '+e1.message); }
+
+  // Method 2: Gemini Flash models
+  for(const m of ['gemini-2.0-flash-exp','gemini-2.0-flash-preview-image-generation','gemini-2.0-flash']){
     try{
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cfg.gk}`;
-      const r = await fetch(url,{method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          contents:[{parts:[{text:'A warm elderly care facility in Taiwan, caregiving nurse helping elderly, soft natural light, photorealistic'}]}],
-          generationConfig:{responseModalities:['IMAGE','TEXT']}
-        })});
-      const d = await r.json();
-      const img = d.candidates?.[0]?.content?.parts?.find(p=>p.inlineData);
-      if(img){
-        cfg.geminiModel = model;
-        localStorage.setItem('sf2_cfg', JSON.stringify(cfg));
-        toast('✅ 生圖成功！使用模型：'+model);
-        addLog('pu','Gemini 生圖測試成功，模型：'+model);
-        return;
-      }
-    }catch(e){ continue; }
+      const r2 = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${cfg.gk}`,{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({contents:[{parts:[{text:'Generate image: warm elderly care Taiwan natural light'}]}],generationConfig:{responseModalities:['IMAGE','TEXT']}})
+      });
+      const d2 = await r2.json();
+      addLog('info',m+': '+JSON.stringify(d2).slice(0,200));
+      const img2 = d2.candidates?.[0]?.content?.parts?.find(p=>p.inlineData);
+      if(img2){ cfg.geminiModel=m; localStorage.setItem('sf2_cfg',JSON.stringify(cfg)); toast('✅ 生圖成功！'+m); addLog('pu','成功：'+m); return; }
+    }catch(e2){ addLog('info',m+' err: '+e2.message); }
   }
-  toast('❌ 所有模型均失敗，請確認 Key 是否正確');
-  addLog('err','Gemini 生圖測試失敗，請確認 API Key');
+  toast('❌ 失敗，請到「紀錄」頁查看錯誤詳情');
+  addLog('err','所有生圖方法失敗');
 }
 
 async function testFB(){
@@ -500,19 +500,32 @@ function buildPrompt(count, topicKey){
 
 async function geminiGenImage(prompt){
   if(!cfg.gk) return null;
-  const model = cfg.geminiModel || 'gemini-2.0-flash-exp';
+  const fullPrompt = prompt + ', warm natural light, realistic photo style, Taiwan elderly care, heartwarming';
+  const model = cfg.geminiModel || 'imagen3';
+
+  // Imagen 3
+  if(model === 'imagen3'){
+    try{
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${cfg.gk}`,{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({instances:[{prompt:fullPrompt}], parameters:{sampleCount:1}})
+      });
+      const d = await r.json();
+      const b64 = d.predictions?.[0]?.bytesBase64Encoded;
+      if(b64) return 'data:image/png;base64,'+b64;
+    }catch(e){ console.warn('Imagen3 err:',e); }
+  }
+
+  // Gemini Flash fallback
   try{
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cfg.gk}`;
-    const r = await fetch(url,{method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        contents:[{parts:[{text: prompt + ', warm natural light, realistic photo style, Taiwan elderly care, heartwarming'}]}],
-        generationConfig:{responseModalities:['IMAGE','TEXT']}
-      })});
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cfg.gk}`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:fullPrompt}]}],generationConfig:{responseModalities:['IMAGE','TEXT']}})
+    });
     const d = await r.json();
     const img = d.candidates?.[0]?.content?.parts?.find(p=>p.inlineData);
     if(img) return 'data:'+img.inlineData.mimeType+';base64,'+img.inlineData.data;
-  }catch(e){ console.warn('Gemini img error:',e); }
+  }catch(e){ console.warn('Gemini img err:',e); }
   return null;
 }
 
